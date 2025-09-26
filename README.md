@@ -106,7 +106,7 @@ Deploying to Vercel is seamless – it's optimized for Next.js!
    - Click "Deploy" – your site will be live in minutes!
    - Custom Domain: Add via Vercel settings.
 
-Live Example: [Vercel Preview](https://vercel.com/muhammad-razas-projects-a27e171a/v0-next-gen-weather-app)
+View Live Browser: [Vercel Preview](https://advance-weather-app-next-gen.vercel.app/)
 
 Other Platforms: Netlify (drag-and-drop), Render, or Railway for easy hosting.
 
