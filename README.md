@@ -77,7 +77,7 @@ This app leverages a robust ecosystem of tools for development, styling, and fun
 
 ## 📱 How to Use
 
-1. **Search for a City**: Type in the search bar or click the microphone for voice input (e.g., "London").
+1. **Search for a City**: Type in the search bar, retrieve current conditions, forecasts, and details for any city worldwide via text input (e.g., "London").
 2. **Explore Weather Data**: View current temperature, feels-like, humidity, wind, visibility, and pressure.
 3. **Check Forecasts**: check the weekly view.
 4. **Offline Usage**: The app caches recent searches; an indicator shows when offline.
