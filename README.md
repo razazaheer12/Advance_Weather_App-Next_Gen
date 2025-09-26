@@ -10,12 +10,9 @@ This project was developed using Next.js for optimal performance and scalability
 
 ## ✨ Key Features
 
-- 🌍 **Global Weather Search**: Instantly retrieve current conditions, forecasts, and details for any city worldwide via text or voice input.
-- 📈 **Dynamic Visualizations**: Interactive temperature charts, hourly carousels, and weekly overviews using Recharts and Embla Carousel for smooth scrolling.
-- ❤️ **Favorites & Personalization**: Easily add, manage, and persist your favorite locations with local storage – no accounts needed!
+- 🌍 **Global Weather Search**: Instantly retrieve current conditions, forecasts, and details for any city worldwide via text input.
+- 📈 **Dynamic Visualizations**: Interactive temperature charts,  and weekly overviews using Recharts and Embla Carousel for smooth scrolling.
 - 📱 **PWA Excellence**: Installable app with service workers for offline access, background sync, and a custom manifest for home screen addition.
-- 🔊 **Voice-Activated Search**: Hands-free querying using browser speech recognition – just speak the city name!
-- 🌙 **Adaptive Theming**: Automatic light/dark mode detection with next-themes, plus a beautiful weather-themed background.
 - ⚡ **Offline Resilience**: Graceful degradation with cached data, offline indicators, and install prompts for uninterrupted experience.
 - 🎨 **Accessible UI**: Built with Radix UI primitives for keyboard navigation, screen reader support, and responsive design across devices.
 
@@ -27,7 +24,7 @@ This app leverages a robust ecosystem of tools for development, styling, and fun
 - **Styling & UI**: Tailwind CSS 4, clsx & Tailwind Merge for utility-first design; Radix UI for accessible components; Lucide React for icons.
 - **Data & Forms**: React Hook Form & Zod for validation; Date-fns for date handling; Sonner for toast notifications.
 - **Charts & Carousels**: Recharts for data visualization; Embla Carousel React for responsive sliders.
-- **Hooks & Utilities**: Custom React hooks (e.g., useWeather, useFavorites, useSpeechRecognition) for state management.
+- **Hooks & Utilities**: Custom React hooks (e.g., useWeather, useFavorites) for state management.
 - **PWA & Offline**: Custom service worker (sw.js), manifest.json, and hooks like usePWA for installation prompts.
 - **Build Tools**: pnpm for dependency management; PostCSS & Autoprefixer for CSS processing.
 - **Weather API**: Integrated with OpenWeatherMap (requires API key for live data).
@@ -79,10 +76,8 @@ This app leverages a robust ecosystem of tools for development, styling, and fun
 
 1. **Search for a City**: Type in the search bar or click the microphone for voice input (e.g., "London").
 2. **Explore Weather Data**: View current temperature, feels-like, humidity, wind, visibility, and pressure.
-3. **Check Forecasts**: Swipe through hourly predictions or expand the weekly view.
-4. **Manage Favorites**: Heart icon to add/remove cities; access via the favorites list.
-5. **Offline Usage**: The app caches recent searches; an indicator shows when offline.
-6. **Install the App**: On mobile/desktop browsers, accept the install prompt for a native-like experience.
+3. **Check Forecasts**: check the weekly view.
+4. **Offline Usage**: The app caches recent searches; an indicator shows when offline.
 
 Pro Tip: Enable location services for geolocation-based default weather!
 
