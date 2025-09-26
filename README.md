@@ -6,6 +6,9 @@ A cutting-edge, user-friendly weather application built with modern web technolo
 
 Welcome to **Advance Weather App - Next Gen**, a sophisticated weather dashboard that combines powerful API integrations with an intuitive interface. Whether you're planning your day or tracking long-term trends, this app provides accurate data, and beautiful visualizations. Built for the modern web, it supports Progressive Web App (PWA) standards for offline use and instant loading.
 
+<img width="934" height="409" alt="image" src="https://github.com/user-attachments/assets/3d3b99cb-b67e-4689-83db-b18311feb3af" />
+
+
 This project was developed using Next.js for optimal performance and scalability, ensuring fast renders and SEO-friendly pages. Dive in to explore how technology meets meteorology!
 
 ## ✨ Key Features
