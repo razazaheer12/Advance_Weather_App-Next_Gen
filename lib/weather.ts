@@ -3,6 +3,69 @@
 const API_KEY = "ec53262774f7fafbb7a1b1531ac01d6d"
 const BASE_URL = "https://api.openweathermap.org/data/2.5"
 
+export type WeatherErrorKind = "city_not_found" | "network" | "api"
+
+export class WeatherError extends Error {
+  readonly kind: WeatherErrorKind
+
+  constructor(kind: WeatherErrorKind, message: string) {
+    super(message)
+    this.name = "WeatherError"
+    this.kind = kind
+  }
+}
+
+export function getWeatherErrorCopy(error: unknown): { title: string; hint: string } {
+  if (error instanceof WeatherError) {
+    switch (error.kind) {
+      case "city_not_found":
+        return {
+          title: "Couldn't find that city.",
+          hint: "Try checking the spelling or search for another city.",
+        }
+      case "network":
+        return {
+          title: "Unable to update weather.",
+          hint: "Check your connection and try again.",
+        }
+      case "api":
+        return {
+          title: "Weather data is temporarily unavailable.",
+          hint: "Please try again in a moment.",
+        }
+    }
+  }
+  return {
+    title: "Something went wrong.",
+    hint: "Please try again.",
+  }
+}
+
+async function fetchWeatherJson(url: string, notFoundMessage: string): Promise<{ data: any; cachedAt: number | null }> {
+  let response: Response
+  try {
+    response = await fetch(url)
+  } catch {
+    throw new WeatherError("network", "Unable to update weather.")
+  }
+
+  if (response.status === 404) {
+    throw new WeatherError("city_not_found", notFoundMessage)
+  }
+
+  if (!response.ok) {
+    throw new WeatherError("api", "Weather data is temporarily unavailable.")
+  }
+
+  // The service worker stamps cached API responses so the UI can label them.
+  const cachedAtHeader = response.headers.get("x-weatherflow-cached-at")
+  const parsed = cachedAtHeader ? Number(cachedAtHeader) : null
+  const cachedAt = parsed !== null && Number.isFinite(parsed) ? parsed : null
+
+  const data = await response.json()
+  return { data, cachedAt }
+}
+
 export interface WeatherData {
   name: string
   country: string
@@ -23,6 +86,7 @@ export interface WeatherData {
   sunrise: number
   sunset: number
   timezone: number
+  cachedAt?: number | null
 }
 
 export interface ForecastData {
@@ -44,6 +108,7 @@ export interface ForecastData {
       speed: number
       deg: number
     }
+    pop?: number
     dt_txt: string
   }[]
   city: {
@@ -51,88 +116,51 @@ export interface ForecastData {
     country: string
     timezone: number
   }
+  cachedAt?: number | null
+}
+
+function mapCurrentWeather(data: any): WeatherData {
+  return {
+    name: data.name,
+    country: data.sys.country,
+    temp: Math.round(data.main.temp),
+    feels_like: Math.round(data.main.feels_like),
+    temp_min: Math.round(data.main.temp_min),
+    temp_max: Math.round(data.main.temp_max),
+    humidity: data.main.humidity,
+    pressure: data.main.pressure,
+    visibility: data.visibility,
+    wind_speed: data.wind.speed,
+    wind_deg: data.wind.deg,
+    weather: data.weather,
+    sunrise: data.sys.sunrise,
+    sunset: data.sys.sunset,
+    timezone: data.timezone,
+  }
 }
 
 export async function getCurrentWeather(city: string): Promise<WeatherData> {
-  try {
-    const response = await fetch(`${BASE_URL}/weather?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric`)
-
-    if (!response.ok) {
-      throw new Error(`Weather data not found for ${city}`)
-    }
-
-    const data = await response.json()
-
-    return {
-      name: data.name,
-      country: data.sys.country,
-      temp: Math.round(data.main.temp),
-      feels_like: Math.round(data.main.feels_like),
-      temp_min: Math.round(data.main.temp_min),
-      temp_max: Math.round(data.main.temp_max),
-      humidity: data.main.humidity,
-      pressure: data.main.pressure,
-      visibility: data.visibility,
-      wind_speed: data.wind.speed,
-      wind_deg: data.wind.deg,
-      weather: data.weather,
-      sunrise: data.sys.sunrise,
-      sunset: data.sys.sunset,
-      timezone: data.timezone,
-    }
-  } catch (error) {
-    console.error("Error fetching weather data:", error)
-    throw error
-  }
+  const { data, cachedAt } = await fetchWeatherJson(
+    `${BASE_URL}/weather?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric`,
+    `Weather data not found for ${city}`,
+  )
+  return { ...mapCurrentWeather(data), cachedAt }
 }
 
 export async function getWeatherForecast(city: string): Promise<ForecastData> {
-  try {
-    const response = await fetch(`${BASE_URL}/forecast?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric`)
-
-    if (!response.ok) {
-      throw new Error(`Forecast data not found for ${city}`)
-    }
-
-    const data = await response.json()
-    return data
-  } catch (error) {
-    console.error("Error fetching forecast data:", error)
-    throw error
-  }
+  const { data, cachedAt } = await fetchWeatherJson(
+    `${BASE_URL}/forecast?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric`,
+    `Forecast data not found for ${city}`,
+  )
+  return { ...data, cachedAt }
 }
 
 export async function getWeatherByCoords(lat: number, lon: number): Promise<WeatherData> {
-  try {
-    const response = await fetch(`${BASE_URL}/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`)
-
-    if (!response.ok) {
-      throw new Error("Weather data not found for coordinates")
-    }
-
-    const data = await response.json()
-
-    return {
-      name: data.name,
-      country: data.sys.country,
-      temp: Math.round(data.main.temp),
-      feels_like: Math.round(data.main.feels_like),
-      temp_min: Math.round(data.main.temp_min),
-      temp_max: Math.round(data.main.temp_max),
-      humidity: data.main.humidity,
-      pressure: data.main.pressure,
-      visibility: data.visibility,
-      wind_speed: data.wind.speed,
-      wind_deg: data.wind.deg,
-      weather: data.weather,
-      sunrise: data.sys.sunrise,
-      sunset: data.sys.sunset,
-      timezone: data.timezone,
-    }
-  } catch (error) {
-    console.error("Error fetching weather data by coordinates:", error)
-    throw error
-  }
+  const { data, cachedAt } = await fetchWeatherJson(
+    `${BASE_URL}/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`,
+    "Weather data not found for your location",
+  )
+  return { ...mapCurrentWeather(data), cachedAt }
 }
 
 export function getWeatherIconUrl(iconCode: string): string {

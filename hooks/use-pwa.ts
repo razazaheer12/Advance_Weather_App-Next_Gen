@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>
@@ -11,7 +11,9 @@ export function usePWA() {
   const [isInstallable, setIsInstallable] = useState(false)
   const [isInstalled, setIsInstalled] = useState(false)
   const [isOnline, setIsOnline] = useState(true)
+  const [updateAvailable, setUpdateAvailable] = useState(false)
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+  const registrationRef = useRef<ServiceWorkerRegistration | null>(null)
 
   // Check if app is installed
   useEffect(() => {
@@ -68,17 +70,35 @@ export function usePWA() {
     }
   }, [])
 
-  // Register service worker
+  // Register service worker + surface new versions without hijacking open tabs
   useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("/sw.js")
-        .then((registration) => {
-          console.log("SW registered: ", registration)
+    if (!("serviceWorker" in navigator)) return
+
+    const handleControllerChange = () => {
+      window.location.reload()
+    }
+    navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange)
+
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then((registration) => {
+        registrationRef.current = registration
+        registration.addEventListener("updatefound", () => {
+          const newWorker = registration.installing
+          if (!newWorker) return
+          newWorker.addEventListener("statechange", () => {
+            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+              setUpdateAvailable(true)
+            }
+          })
         })
-        .catch((registrationError) => {
-          console.log("SW registration failed: ", registrationError)
-        })
+      })
+      .catch(() => {
+        // Service workers unavailable (private mode, unsupported): app still works
+      })
+
+    return () => {
+      navigator.serviceWorker.removeEventListener("controllerchange", handleControllerChange)
     }
   }, [])
 
@@ -101,10 +121,21 @@ export function usePWA() {
     }
   }, [deferredPrompt])
 
+  const reloadToUpdate = useCallback(() => {
+    const waiting = registrationRef.current?.waiting
+    if (waiting) {
+      waiting.postMessage("SKIP_WAITING")
+    } else {
+      window.location.reload()
+    }
+  }, [])
+
   return {
     isInstallable,
     isInstalled,
     isOnline,
+    updateAvailable,
     installApp,
+    reloadToUpdate,
   }
 }

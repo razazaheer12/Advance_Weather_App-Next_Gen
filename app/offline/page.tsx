@@ -10,11 +10,11 @@ export default function OfflinePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-400 via-gray-500 to-gray-600 flex items-center justify-center p-4">
-      <Card className="max-w-md w-full bg-white/95 backdrop-blur-sm border-white/30 shadow-xl">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted to-primary/10 flex items-center justify-center p-4">
+      <Card className="max-w-md w-full bg-card/95 backdrop-blur-sm border-border/60 shadow-xl">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 p-3 bg-gray-100 rounded-full w-fit">
-            <WifiOff className="h-8 w-8 text-gray-600" />
+          <div className="bg-muted mx-auto mb-4 w-fit rounded-full p-3">
+            <WifiOff className="text-muted-foreground h-8 w-8" />
           </div>
           <CardTitle className="text-xl">You're Offline</CardTitle>
         </CardHeader>

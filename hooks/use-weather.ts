@@ -1,65 +1,115 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useRef } from "react"
 import {
   getCurrentWeather,
   getWeatherForecast,
   getWeatherByCoords,
+  WeatherError,
   type WeatherData,
   type ForecastData,
 } from "@/lib/weather"
+import { cityCacheKey, coordsCacheKey, readWeatherCache, writeWeatherCache } from "@/lib/weather-cache"
+
+function isNetworkError(error: unknown): boolean {
+  return error instanceof WeatherError && error.kind === "network"
+}
 
 export function useWeather() {
   const [currentWeather, setCurrentWeather] = useState<WeatherData | null>(null)
   const [forecast, setForecast] = useState<ForecastData | null>(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
+  const [staleSince, setStaleSince] = useState<number | null>(null)
+  const requestIdRef = useRef(0)
+
+  const commitSuccess = (
+    requestId: number,
+    weather: WeatherData,
+    forecastData: ForecastData | null,
+    cacheKey: string,
+  ) => {
+    if (requestId !== requestIdRef.current) return
+    setCurrentWeather(weather)
+    setForecast(forecastData)
+    const cachedAt = weather.cachedAt ?? forecastData?.cachedAt ?? null
+    if (cachedAt !== null) {
+      // Served from the service worker cache: keep the original timestamp.
+      setStaleSince(cachedAt)
+    } else {
+      setStaleSince(null)
+      writeWeatherCache(cacheKey, weather, forecastData)
+    }
+  }
+
+  const commitFailure = (requestId: number, err: unknown, cacheKey: string) => {
+    if (requestId !== requestIdRef.current) return
+    if (isNetworkError(err)) {
+      const entry = readWeatherCache(cacheKey)
+      if (entry) {
+        setCurrentWeather(entry.weather)
+        setForecast(entry.forecast)
+        setStaleSince(entry.savedAt)
+        setError(null)
+        return
+      }
+    }
+    setError(err)
+    setCurrentWeather(null)
+    setForecast(null)
+    setStaleSince(null)
+  }
 
   const fetchWeatherByCity = useCallback(async (city: string) => {
+    const requestId = ++requestIdRef.current
+    const cacheKey = cityCacheKey(city)
     setLoading(true)
     setError(null)
 
     try {
       const [weatherData, forecastData] = await Promise.all([getCurrentWeather(city), getWeatherForecast(city)])
-
-      setCurrentWeather(weatherData)
-      setForecast(forecastData)
+      commitSuccess(requestId, weatherData, forecastData, cacheKey)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch weather data")
-      setCurrentWeather(null)
-      setForecast(null)
+      commitFailure(requestId, err, cacheKey)
     } finally {
-      setLoading(false)
+      if (requestId === requestIdRef.current) {
+        setLoading(false)
+      }
     }
   }, [])
 
   const fetchWeatherByLocation = useCallback(async () => {
     if (!navigator.geolocation) {
-      setError("Geolocation is not supported by this browser")
+      setError(new Error("Geolocation is not supported by this browser"))
       return
     }
 
+    const requestId = ++requestIdRef.current
     setLoading(true)
     setError(null)
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
+        const { latitude, longitude } = position.coords
+        const cacheKey = coordsCacheKey(latitude, longitude)
         try {
-          const { latitude, longitude } = position.coords
           const weatherData = await getWeatherByCoords(latitude, longitude)
-          setCurrentWeather(weatherData)
 
           // Also fetch forecast for the detected city
           const forecastData = await getWeatherForecast(weatherData.name)
-          setForecast(forecastData)
+
+          commitSuccess(requestId, weatherData, forecastData, cacheKey)
         } catch (err) {
-          setError(err instanceof Error ? err.message : "Failed to fetch weather data")
+          commitFailure(requestId, err, cacheKey)
         } finally {
-          setLoading(false)
+          if (requestId === requestIdRef.current) {
+            setLoading(false)
+          }
         }
       },
-      (err) => {
-        setError("Unable to retrieve your location")
+      () => {
+        if (requestId !== requestIdRef.current) return
+        setError(new Error("Unable to retrieve your location"))
         setLoading(false)
       },
     )
@@ -70,6 +120,7 @@ export function useWeather() {
     forecast,
     loading,
     error,
+    staleSince,
     fetchWeatherByCity,
     fetchWeatherByLocation,
   }

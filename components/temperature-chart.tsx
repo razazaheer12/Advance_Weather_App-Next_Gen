@@ -1,111 +1,65 @@
 "use client"
 
-import { Line, LineChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from "recharts"
+import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { formatHourLabel, getHourlyForecast } from "@/lib/forecast"
 import type { ForecastData } from "@/lib/weather"
 
 interface TemperatureChartProps {
-  forecastData: ForecastData
+  forecast: ForecastData
 }
 
-export function TemperatureChart({ forecastData }: TemperatureChartProps) {
-  if (!forecastData || !forecastData.list || forecastData.list.length === 0) {
-    return (
-      <Card className="w-full bg-white/95 backdrop-blur-sm border-white/30 shadow-xl">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold">Temperature Trend</CardTitle>
-          <CardDescription>24-hour temperature forecast</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px] w-full flex items-center justify-center">
-            <p className="text-muted-foreground">No forecast data available</p>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
+function ChartTooltip({ active, payload }: { active?: boolean; payload?: { payload: { label: string; temp: number } }[] }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="bg-popover text-popover-foreground rounded-md border px-2 py-1 text-xs shadow-sm">
+      {payload[0].payload.label} · <span className="font-semibold">{payload[0].payload.temp}°</span>
+    </div>
+  )
+}
 
-  const chartData = forecastData.list.slice(0, 8).map((item) => {
-    const date = new Date(item.dt * 1000)
-    const time = date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      hour12: false,
-    })
-    const day = date.getDate()
-
-    return {
-      time: `${day}/${time}h`,
-      fullTime: date.toLocaleString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      temperature: Math.round(item.main.temp),
-      feelsLike: Math.round(item.main.feels_like),
-      humidity: item.main.humidity,
-    }
-  })
+export function TemperatureChart({ forecast }: TemperatureChartProps) {
+  const timezone = forecast.city?.timezone ?? 0
+  const data = getHourlyForecast(forecast, 8).map((hour, index) => ({
+    label: index === 0 ? "Now" : formatHourLabel(hour.dt, timezone),
+    temp: hour.temp,
+  }))
 
   return (
-    <Card className="w-full bg-white/95 backdrop-blur-sm border-white/30 shadow-xl">
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold">Temperature Trend</CardTitle>
-        <CardDescription>24-hour temperature forecast</CardDescription>
+    <Card className="bg-card/90 border-border/50 shadow-sm backdrop-blur-sm">
+      <CardHeader className="px-6 pt-6 pb-2">
+        <CardTitle className="text-foreground text-base font-semibold">Temperature Trend</CardTitle>
+        <CardDescription>Next 24 hours</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="h-[300px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis
-                dataKey="time"
-                tick={{ fontSize: 11, fill: "#6b7280" }}
-                angle={-45}
-                textAnchor="end"
-                height={60}
-                interval={0}
-              />
-              <YAxis
-                tick={{ fontSize: 11, fill: "#6b7280" }}
-                label={{ value: "°C", angle: -90, position: "insideLeft", style: { textAnchor: "middle" } }}
-                width={40}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "white",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "8px",
-                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                }}
-                labelFormatter={(value, payload) => {
-                  const item = payload?.[0]?.payload
-                  return item ? `Time: ${item.fullTime}` : `Time: ${value}`
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="temperature"
-                stroke="#3b82f6"
-                strokeWidth={3}
-                dot={{ r: 4, fill: "#3b82f6" }}
-                activeDot={{ r: 6, fill: "#3b82f6" }}
-                name="Temperature (°C)"
-              />
-              <Line
-                type="monotone"
-                dataKey="feelsLike"
-                stroke="#f59e0b"
-                strokeWidth={2}
-                strokeDasharray="5 5"
-                dot={{ r: 3, fill: "#f59e0b" }}
-                activeDot={{ r: 5, fill: "#f59e0b" }}
-                name="Feels Like (°C)"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+      <CardContent className="text-primary h-36 w-full px-4 pb-4">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 12 }}>
+            <defs>
+              <linearGradient id="tempFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="currentColor" stopOpacity={0.25} />
+                <stop offset="100%" stopColor="currentColor" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <YAxis hide domain={["dataMin - 1", "dataMax + 1"]} />
+            <XAxis
+              dataKey="label"
+              tickLine={false}
+              axisLine={false}
+              interval={1}
+              tick={{ fontSize: 11, fill: "currentColor", opacity: 0.55 }}
+            />
+            <Tooltip content={<ChartTooltip />} cursor={{ stroke: "currentColor", strokeOpacity: 0.25 }} />
+            <Area
+              type="monotone"
+              dataKey="temp"
+              stroke="currentColor"
+              strokeWidth={2}
+              fill="url(#tempFill)"
+              dot={false}
+              activeDot={{ r: 3 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
       </CardContent>
     </Card>
   )

@@ -1,128 +1,84 @@
 "use client"
 
-import { useState } from "react"
-import { Heart, MapPin, Droplets, RefreshCw, X } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Heart, MapPin, RefreshCw, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { WeatherIcon } from "@/components/weather-icon"
 import { useFavorites } from "@/hooks/use-favorites"
-import { getWeatherIconUrl } from "@/lib/weather"
 
 interface FavoritesListProps {
-  onCitySelect: (cityName: string) => void
-  className?: string
+  onSelect: (cityName: string) => void
 }
 
-export function FavoritesList({ onCitySelect, className = "" }: FavoritesListProps) {
-  const { favorites, loading, removeFavorite, updateFavoritesWeather } = useFavorites()
-  const [isExpanded, setIsExpanded] = useState(false)
+export function FavoritesList({ onSelect }: FavoritesListProps) {
+  const { favorites, loading, removeFavorite, refreshAll } = useFavorites()
 
-  if (favorites.length === 0) {
-    return (
-      <Card className={`bg-white/95 backdrop-blur-sm border-white/30 shadow-xl ${className}`}>
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Heart className="h-5 w-5 text-red-500" />
-            Favorite Cities
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <Heart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">No favorite cities yet</p>
-            <p className="text-sm text-muted-foreground mt-1">Add cities to your favorites for quick access</p>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  const displayedFavorites = isExpanded ? favorites : favorites.slice(0, 3)
+  if (favorites.length === 0) return null
 
   return (
-    <Card className={`bg-white/95 backdrop-blur-sm border-white/30 shadow-xl ${className}`}>
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Heart className="h-5 w-5 text-red-500" />
-            Favorite Cities
-            <Badge variant="secondary" className="ml-2">
-              {favorites.length}
-            </Badge>
-          </CardTitle>
-          <Button variant="ghost" size="sm" onClick={updateFavoritesWeather} disabled={loading} className="h-8 w-8 p-0">
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-full">
-          <div className="space-y-3">
-            {displayedFavorites.map((favorite) => (
-              <div
-                key={favorite.id}
-                className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group"
-                onClick={() => onCitySelect(favorite.name)}
-              >
-                <div className="flex items-center gap-3 flex-1">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <div className="font-medium text-sm">
-                        {favorite.name}, {favorite.country}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Added {new Date(favorite.addedAt).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
+    <section className="animate-fade-in-up mt-10 w-full text-left" style={{ animationDelay: "80ms" }}>
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-muted-foreground flex items-center gap-1.5 text-sm font-semibold">
+          <Heart className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
+          Favorite Cities
+        </h3>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={refreshAll}
+          disabled={loading}
+          aria-label="Refresh favorite cities weather"
+          className="text-muted-foreground h-7 px-2 text-xs"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} aria-hidden="true" />
+          Refresh
+        </Button>
+      </div>
 
-                  {favorite.weather && (
-                    <div className="flex items-center gap-2 ml-auto">
-                      <img
-                        src={getWeatherIconUrl(favorite.weather.weather[0]?.icon) || "/placeholder.svg"}
-                        alt={favorite.weather.weather[0]?.description}
-                        className="w-8 h-8"
-                      />
-                      <div className="text-right">
-                        <div className="font-bold text-primary text-sm">{favorite.weather.temp}°C</div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Droplets className="h-3 w-3" />
-                          {favorite.weather.humidity}%
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    removeFavorite(favorite.id)
-                  }}
-                  className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <X className="h-4 w-4 text-destructive" />
-                </Button>
-              </div>
-            ))}
-          </div>
-
-          {favorites.length > 3 && (
+      <div className="bg-card/80 border-border/50 divide-border/50 divide-y overflow-hidden rounded-xl border shadow-sm backdrop-blur-sm">
+        {favorites.map((favorite) => (
+          <div key={favorite.id} className="group flex items-center gap-2 px-4 py-3">
+            <button
+              type="button"
+              onClick={() => onSelect(favorite.name)}
+              className="hover:bg-accent/50 flex flex-1 items-center gap-3 rounded-md py-1 text-left transition-colors"
+            >
+              {favorite.weather ? (
+                <WeatherIcon
+                  icon={favorite.weather.weather[0]?.icon}
+                  description={favorite.weather.weather[0]?.description}
+                  className="text-primary h-7 w-7 shrink-0"
+                />
+              ) : (
+                <MapPin className="text-muted-foreground h-4 w-4 shrink-0" aria-hidden="true" />
+              )}
+              <span className="min-w-0 flex-1">
+                <span className="text-foreground block truncate text-sm font-medium">
+                  {favorite.name}, {favorite.country}
+                </span>
+                {favorite.weather && (
+                  <span className="text-muted-foreground block truncate text-xs capitalize">
+                    {favorite.weather.weather[0]?.description}
+                  </span>
+                )}
+              </span>
+              {favorite.weather && (
+                <span className="text-primary shrink-0 text-lg font-bold">
+                  {Math.round(favorite.weather.temp)}°
+                </span>
+              )}
+            </button>
             <Button
               variant="ghost"
-              size="sm"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="w-full mt-3 text-sm"
+              size="icon"
+              onClick={() => removeFavorite(favorite.id)}
+              aria-label={`Remove ${favorite.name} from favorites`}
+              className="text-muted-foreground hover:text-destructive h-8 w-8 shrink-0 opacity-60 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
             >
-              {isExpanded ? "Show Less" : `Show ${favorites.length - 3} More`}
+              <X className="h-4 w-4" aria-hidden="true" />
             </Button>
-          )}
-        </ScrollArea>
-      </CardContent>
-    </Card>
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }

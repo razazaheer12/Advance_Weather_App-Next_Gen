@@ -1,152 +1,168 @@
-const CACHE_NAME = "weather-app-v1"
-const STATIC_CACHE = "weather-static-v1"
-const API_CACHE = "weather-api-v1"
+// WeatherFlow service worker.
+// Bump VERSION on every deploy-facing change so stale caches are purged and
+// waiting workers can be swapped in through the update flow.
+const VERSION = "weatherflow-v1"
+const STATIC_CACHE = `${VERSION}-static`
+const RUNTIME_CACHE = `${VERSION}-runtime`
 
-// Static assets to cache
-const STATIC_ASSETS = ["/", "/manifest.json", "/offline"]
-
-// API endpoints to cache
-const API_ENDPOINTS = [
-  "https://api.openweathermap.org/data/2.5/weather",
-  "https://api.openweathermap.org/data/2.5/forecast",
+const APP_SHELL = [
+  "/",
+  "/offline",
+  "/manifest.json",
+  "/favicon.ico",
+  "/icon-192.png",
+  "/icon-512.png",
+  "/apple-touch-icon.png",
 ]
 
-// Install event - cache static assets
+const API_HOST = "api.openweathermap.org"
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    Promise.all([
-      caches.open(STATIC_CACHE).then((cache) => {
-        return cache.addAll(STATIC_ASSETS)
-      }),
-      caches.open(API_CACHE).then((cache) => {
-        // Pre-cache will be handled by fetch events
-        return Promise.resolve()
-      }),
-    ]),
+    caches.open(STATIC_CACHE).then((cache) => cache.addAll(APP_SHELL)),
   )
-  self.skipWaiting()
+  // No skipWaiting here: a new worker waits until the page calls
+  // SKIP_WAITING (update toast) so open tabs never swap mid-session.
 })
 
-// Activate event - clean up old caches
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== STATIC_CACHE && cacheName !== API_CACHE && cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName)
-          }
-        }),
+    caches
+      .keys()
+      .then((names) =>
+        Promise.all(
+          names
+            .filter((name) => name !== STATIC_CACHE && name !== RUNTIME_CACHE)
+            .map((name) => caches.delete(name)),
+        ),
       )
-    }),
+      .then(() => self.clients.claim()),
   )
-  self.clients.claim()
 })
 
-// Fetch event - implement caching strategies
+self.addEventListener("message", (event) => {
+  if (event.data === "SKIP_WAITING") {
+    self.skipWaiting()
+  }
+})
+
 self.addEventListener("fetch", (event) => {
   const { request } = event
+  if (request.method !== "GET") return
+
   const url = new URL(request.url)
 
-  // Handle API requests with stale-while-revalidate
-  if (API_ENDPOINTS.some((endpoint) => request.url.includes(endpoint))) {
-    event.respondWith(staleWhileRevalidate(request))
+  if (url.host === API_HOST) {
+    event.respondWith(networkFirstApi(request))
     return
   }
 
-  // Handle static assets with cache-first
-  if (
-    request.destination === "document" ||
+  if (request.mode === "navigate") {
+    event.respondWith(networkFirstNavigation(request))
+    return
+  }
+
+  if (url.origin === self.location.origin && isStaticAsset(url, request)) {
+    event.respondWith(cacheFirstStatic(request))
+    return
+  }
+
+  event.respondWith(networkOnly(request))
+})
+
+function isStaticAsset(url, request) {
+  return (
+    url.pathname.startsWith("/_next/static/") ||
     request.destination === "script" ||
     request.destination === "style" ||
-    request.destination === "image"
-  ) {
-    event.respondWith(cacheFirst(request))
-    return
-  }
-
-  // Default to network-first for other requests
-  event.respondWith(networkFirst(request))
-})
-
-// Cache-first strategy for static assets
-async function cacheFirst(request) {
-  const cache = await caches.open(STATIC_CACHE)
-  const cached = await cache.match(request)
-
-  if (cached) {
-    return cached
-  }
-
-  try {
-    const response = await fetch(request)
-    if (response.ok) {
-      cache.put(request, response.clone())
-    }
-    return response
-  } catch (error) {
-    // Return offline page for navigation requests
-    if (request.destination === "document") {
-      return cache.match("/offline") || new Response("Offline", { status: 503 })
-    }
-    throw error
-  }
+    request.destination === "font" ||
+    request.destination === "image" ||
+    APP_SHELL.includes(url.pathname)
+  )
 }
 
-// Network-first strategy
-async function networkFirst(request) {
+// API: always try the network so shown data is fresh; fall back to the cached
+// copy (stamped with x-weatherflow-cached-at) when the network is unreachable.
+async function networkFirstApi(request) {
   try {
     const response = await fetch(request)
     if (response.ok) {
-      const cache = await caches.open(CACHE_NAME)
-      cache.put(request, response.clone())
+      const cache = await caches.open(RUNTIME_CACHE)
+      const headers = new Headers(response.headers)
+      headers.set("x-weatherflow-cached-at", String(Date.now()))
+      const stamped = new Response(response.clone().body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+      })
+      cache.put(request, stamped)
+      return response
     }
     return response
   } catch (error) {
-    const cache = await caches.open(CACHE_NAME)
+    const cache = await caches.open(RUNTIME_CACHE)
     const cached = await cache.match(request)
     if (cached) {
-      return cached
+      const headers = new Headers(cached.headers)
+      headers.set("x-weatherflow-source", "cache")
+      return new Response(cached.body, { status: cached.status, statusText: cached.statusText, headers })
     }
     throw error
   }
 }
 
-// Stale-while-revalidate strategy for API calls
-async function staleWhileRevalidate(request) {
-  const cache = await caches.open(API_CACHE)
-  const cached = await cache.match(request)
-
-  // Fetch fresh data in the background
-  const fetchPromise = fetch(request)
-    .then((response) => {
-      if (response.ok) {
-        cache.put(request, response.clone())
+// Navigations: network-first so deploys show up immediately, cached shell when
+// offline.
+async function networkFirstNavigation(request) {
+  try {
+    const response = await fetch(request)
+    if (response.ok) {
+      const cache = await caches.open(STATIC_CACHE)
+      cache.put(request, response.clone())
+      if (new URL(request.url).pathname === "/") {
+        cache.put("/", response.clone())
       }
       return response
-    })
-    .catch(() => {
-      // If network fails, we'll use cached version
-      return null
-    })
-
-  // Return cached version immediately if available, otherwise wait for network
-  if (cached) {
-    return cached
+    }
+    return response
+  } catch (error) {
+    const cache = await caches.open(STATIC_CACHE)
+    const cached = await cache.match(request)
+    if (cached) return cached
+    const home = await cache.match("/")
+    if (home) return home
+    const offline = await cache.match("/offline")
+    if (offline) return offline
+    throw error
   }
-
-  return fetchPromise || new Response("Network error", { status: 503 })
 }
 
-// Background sync for offline actions
-self.addEventListener("sync", (event) => {
-  if (event.tag === "weather-sync") {
-    event.waitUntil(syncWeatherData())
-  }
-})
+// Hashed Next.js assets and icons: cache-first, they are immutable per build.
+async function cacheFirstStatic(request) {
+  const cache = await caches.open(STATIC_CACHE)
+  const cached = await cache.match(request)
+  if (cached) return cached
 
-async function syncWeatherData() {
-  // Sync any pending weather data requests
-  const cache = await caches.open(API_CACHE)
-  // Implementation would depend on specific sync requirements
+  try {
+    const response = await fetch(request)
+    if (response.ok) {
+      cache.put(request, response.clone())
+    }
+    return response
+  } catch (error) {
+    if (request.destination === "image") {
+      const icon = await cache.match("/icon-192.png")
+      if (icon) return icon
+    }
+    throw error
+  }
+}
+
+// Cross-origin subresources (analytics, etc.): pass through, never block offline.
+async function networkOnly(request) {
+  try {
+    return await fetch(request)
+  } catch (error) {
+    return new Response("", { status: 204, statusText: "Offline" })
+  }
 }
