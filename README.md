@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="public/icon-192.png" alt="WeatherFlow icon" width="96" height="96" />
-
 # ⛅ WeatherFlow
 
 **A premium, minimal, app-like weather experience for the web.**
