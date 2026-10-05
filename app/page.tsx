@@ -18,11 +18,15 @@ import { RecentSearches } from "@/components/recent-searches"
 import { OfflineIndicator } from "@/components/offline-indicator"
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
 import { UpdateNotification } from "@/components/update-notification"
+import { UnitsToggle } from "@/components/units-toggle"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { WeatherAmbience } from "@/components/weather-ambience"
 import { Logo, LogoMark } from "@/components/logo"
 
 export default function WeatherApp() {
   const { status, completeOnboarding } = useOnboarding()
-  const { currentWeather, forecast, loading, error, staleSince, fetchWeatherByCity } = useWeather()
+  const { currentWeather, forecast, loading, error, staleSince, fetchWeatherByCity, fetchWeatherByLocation } =
+    useWeather()
   const { updateFavoriteWeather } = useFavorites()
   const { addRecent } = useRecentSearches()
   const { isInstallable, isInstalled, isOnline, updateAvailable, installApp, reloadToUpdate } = usePWA()
@@ -63,21 +67,30 @@ export default function WeatherApp() {
   const showEmpty = !loading && !showError && !showDashboard
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted to-primary/10">
-      <div className="container mx-auto px-4 py-8 md:py-12">
+    <div className="bg-background relative min-h-screen">
+      <WeatherAmbience
+        condition={currentWeather?.weather[0]?.main}
+        isNight={currentWeather?.weather[0]?.icon?.endsWith("n") ?? false}
+      />
+      <div className="container relative mx-auto px-4 py-8 md:py-12">
         <OfflineIndicator isOnline={isOnline} staleSince={staleSince} />
-        {!showEmpty && (
-          <header className="animate-fade-in mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <Logo className="justify-center md:justify-start" />
+        <header className="animate-fade-in mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <Logo className="justify-center md:justify-start" />
+          {!showEmpty && (
             <SearchBar
               value={searchQuery}
               onValueChange={setSearchQuery}
               onSubmit={handleSearch}
+              onLocate={fetchWeatherByLocation}
               loading={loading}
               className="w-full md:max-w-sm"
             />
-          </header>
-        )}
+          )}
+          <div className="flex items-center justify-center gap-2 md:shrink-0">
+            <UnitsToggle />
+            <ThemeToggle />
+          </div>
+        </header>
 
         <main>
           {loading && !currentWeather ? (
@@ -104,6 +117,7 @@ export default function WeatherApp() {
                 value={searchQuery}
                 onValueChange={setSearchQuery}
                 onSubmit={handleSearch}
+                onLocate={fetchWeatherByLocation}
                 loading={loading}
               />
               <FavoritesList onSelect={handleSelectCity} />

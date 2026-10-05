@@ -1,6 +1,5 @@
 // Weather API service for OpenWeatherMap integration
 
-const API_KEY = "ec53262774f7fafbb7a1b1531ac01d6d"
 const BASE_URL = "https://api.openweathermap.org/data/2.5"
 
 export type WeatherErrorKind = "city_not_found" | "network" | "api"
@@ -13,6 +12,14 @@ export class WeatherError extends Error {
     this.name = "WeatherError"
     this.kind = kind
   }
+}
+
+function getApiKey(): string {
+  const key = process.env.NEXT_PUBLIC_WEATHER_API_KEY
+  if (!key) {
+    throw new WeatherError("api", "Weather API key is not configured.")
+  }
+  return key
 }
 
 export function getWeatherErrorCopy(error: unknown): { title: string; hint: string } {
@@ -141,7 +148,7 @@ function mapCurrentWeather(data: any): WeatherData {
 
 export async function getCurrentWeather(city: string): Promise<WeatherData> {
   const { data, cachedAt } = await fetchWeatherJson(
-    `${BASE_URL}/weather?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric`,
+    `${BASE_URL}/weather?q=${encodeURIComponent(city)}&appid=${getApiKey()}&units=metric`,
     `Weather data not found for ${city}`,
   )
   return { ...mapCurrentWeather(data), cachedAt }
@@ -149,7 +156,7 @@ export async function getCurrentWeather(city: string): Promise<WeatherData> {
 
 export async function getWeatherForecast(city: string): Promise<ForecastData> {
   const { data, cachedAt } = await fetchWeatherJson(
-    `${BASE_URL}/forecast?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric`,
+    `${BASE_URL}/forecast?q=${encodeURIComponent(city)}&appid=${getApiKey()}&units=metric`,
     `Forecast data not found for ${city}`,
   )
   return { ...data, cachedAt }
@@ -157,7 +164,7 @@ export async function getWeatherForecast(city: string): Promise<ForecastData> {
 
 export async function getWeatherByCoords(lat: number, lon: number): Promise<WeatherData> {
   const { data, cachedAt } = await fetchWeatherJson(
-    `${BASE_URL}/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`,
+    `${BASE_URL}/weather?lat=${lat}&lon=${lon}&appid=${getApiKey()}&units=metric`,
     "Weather data not found for your location",
   )
   return { ...mapCurrentWeather(data), cachedAt }

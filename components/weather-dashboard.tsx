@@ -9,6 +9,9 @@ import { HourlyForecast } from "@/components/hourly-forecast"
 import { DailyForecast } from "@/components/daily-forecast"
 import { WeatherDetails } from "@/components/weather-details"
 import { useFavorites } from "@/hooks/use-favorites"
+import { useSettings } from "@/hooks/use-settings"
+import { getDailyForecast } from "@/lib/forecast"
+import { formatTemp } from "@/lib/units"
 import { type WeatherData, type ForecastData } from "@/lib/weather"
 import { cn } from "@/lib/utils"
 
@@ -28,8 +31,14 @@ interface WeatherDashboardProps {
 
 export function WeatherDashboard({ weather: currentWeather, forecast: forecastData }: WeatherDashboardProps) {
   const { toggleFavorite, isFavorite } = useFavorites()
+  const { units } = useSettings()
   const favorited = isFavorite(currentWeather)
   const condition = currentWeather.weather[0]
+  // The /weather snapshot's temp_min/max are the instantaneous range, not the
+  // day's — today's real high/low comes from the 3-hourly forecast buckets.
+  const today = forecastData ? getDailyForecast(forecastData, 1)[0] : undefined
+  const high = today ? today.max : currentWeather.temp_max
+  const low = today ? today.min : currentWeather.temp_min
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -59,7 +68,10 @@ export function WeatherDashboard({ weather: currentWeather, forecast: forecastDa
                   ? `Remove ${currentWeather.name} from favorites`
                   : `Add ${currentWeather.name} to favorites`
               }
-              className={cn("h-10 w-10 shrink-0 rounded-full", favorited ? "text-red-500" : "text-muted-foreground")}
+              className={cn(
+                "h-10 w-10 shrink-0 rounded-full transition-transform active:scale-90",
+                favorited ? "text-red-500" : "text-muted-foreground",
+              )}
             >
               <Heart
                 aria-hidden="true"
@@ -77,7 +89,7 @@ export function WeatherDashboard({ weather: currentWeather, forecast: forecastDa
               />
               <div>
                 <div className="text-foreground text-6xl font-bold tracking-tight md:text-7xl">
-                  {Math.round(currentWeather.temp)}°
+                  {formatTemp(currentWeather.temp, units)}
                 </div>
                 <p className="text-muted-foreground mt-1 text-lg capitalize">{condition?.description}</p>
               </div>
@@ -85,12 +97,12 @@ export function WeatherDashboard({ weather: currentWeather, forecast: forecastDa
             <div className="text-foreground flex gap-8 text-sm md:ml-auto">
               <div>
                 <div className="text-muted-foreground text-xs font-medium">Feels like</div>
-                <div className="mt-0.5 text-base font-semibold">{Math.round(currentWeather.feels_like)}°</div>
+                <div className="mt-0.5 text-base font-semibold">{formatTemp(currentWeather.feels_like, units)}</div>
               </div>
               <div>
                 <div className="text-muted-foreground text-xs font-medium">High / Low</div>
                 <div className="mt-0.5 text-base font-semibold">
-                  {Math.round(currentWeather.temp_max)}° / {Math.round(currentWeather.temp_min)}°
+                  {formatTemp(high, units)} / {formatTemp(low, units)}
                 </div>
               </div>
             </div>

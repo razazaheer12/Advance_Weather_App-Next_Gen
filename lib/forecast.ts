@@ -82,14 +82,3 @@ export function formatHourLabel(dt: number, timezone: number): string {
     timeZone: "UTC",
   })
 }
-
-// OWM metric units return wind in m/s
-export function formatWind(speedMs: number): string {
-  return `${Math.round(speedMs * 3.6)} km/h`
-}
-
-// OWM returns visibility in meters
-export function formatVisibility(meters?: number): string | null {
-  if (meters === undefined || meters === null || meters <= 0) return null
-  return `${(meters / 1000).toFixed(1)} km`
-}

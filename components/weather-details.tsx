@@ -1,6 +1,7 @@
 import { Droplets, Eye, Gauge, Sunrise, Sunset, Thermometer, Wind, type LucideIcon } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { formatVisibility, formatWind } from "@/lib/forecast"
+import { useSettings } from "@/hooks/use-settings"
+import { formatTemp, formatVisibility, formatWind } from "@/lib/units"
 import { formatTime, type WeatherData } from "@/lib/weather"
 
 interface WeatherDetailsProps {
@@ -14,12 +15,13 @@ interface Metric {
 }
 
 export function WeatherDetails({ weather }: WeatherDetailsProps) {
-  const visibility = formatVisibility(weather.visibility)
+  const { units } = useSettings()
+  const visibility = formatVisibility(weather.visibility, units)
 
   const metrics: Metric[] = [
-    { icon: Thermometer, label: "Feels like", value: `${Math.round(weather.feels_like)}°` },
+    { icon: Thermometer, label: "Feels like", value: formatTemp(weather.feels_like, units) },
     { icon: Droplets, label: "Humidity", value: `${weather.humidity}%` },
-    { icon: Wind, label: "Wind", value: formatWind(weather.wind_speed) },
+    { icon: Wind, label: "Wind", value: formatWind(weather.wind_speed, units) },
     ...(visibility ? [{ icon: Eye, label: "Visibility", value: visibility } as Metric] : []),
     { icon: Gauge, label: "Pressure", value: `${weather.pressure} hPa` },
     { icon: Sunrise, label: "Sunrise", value: formatTime(weather.sunrise, weather.timezone) },

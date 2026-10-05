@@ -2,6 +2,8 @@
 
 import { Heart } from "lucide-react"
 import { useFavorites } from "@/hooks/use-favorites"
+import { useSettings } from "@/hooks/use-settings"
+import { formatTemp } from "@/lib/units"
 import { cn } from "@/lib/utils"
 
 interface FavoritesBarProps {
@@ -11,6 +13,7 @@ interface FavoritesBarProps {
 
 export function FavoritesBar({ onSelect, activeCityId }: FavoritesBarProps) {
   const { favorites } = useFavorites()
+  const { units } = useSettings()
 
   if (favorites.length === 0) return null
 
@@ -28,7 +31,7 @@ export function FavoritesBar({ onSelect, activeCityId }: FavoritesBarProps) {
             onClick={() => onSelect(favorite.name)}
             aria-current={isActive ? "true" : undefined}
             className={cn(
-              "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm transition-colors",
+              "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm transition-all active:scale-95",
               isActive
                 ? "bg-primary text-primary-foreground border-transparent shadow-sm"
                 : "bg-card/80 border-border/50 text-foreground hover:bg-accent shadow-sm backdrop-blur-sm",
@@ -41,7 +44,7 @@ export function FavoritesBar({ onSelect, activeCityId }: FavoritesBarProps) {
             <span className="font-medium">{favorite.name}</span>
             {favorite.weather && (
               <span className={cn("text-xs", isActive ? "opacity-90" : "text-muted-foreground")}>
-                {Math.round(favorite.weather.temp)}°
+                {formatTemp(favorite.weather.temp, units)}
               </span>
             )}
           </button>

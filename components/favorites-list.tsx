@@ -4,6 +4,8 @@ import { Heart, MapPin, RefreshCw, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { WeatherIcon } from "@/components/weather-icon"
 import { useFavorites } from "@/hooks/use-favorites"
+import { useSettings } from "@/hooks/use-settings"
+import { formatTemp } from "@/lib/units"
 
 interface FavoritesListProps {
   onSelect: (cityName: string) => void
@@ -11,6 +13,7 @@ interface FavoritesListProps {
 
 export function FavoritesList({ onSelect }: FavoritesListProps) {
   const { favorites, loading, removeFavorite, refreshAll } = useFavorites()
+  const { units } = useSettings()
 
   if (favorites.length === 0) return null
 
@@ -63,7 +66,7 @@ export function FavoritesList({ onSelect }: FavoritesListProps) {
               </span>
               {favorite.weather && (
                 <span className="text-primary shrink-0 text-lg font-bold">
-                  {Math.round(favorite.weather.temp)}°
+                  {formatTemp(favorite.weather.temp, units)}
                 </span>
               )}
             </button>

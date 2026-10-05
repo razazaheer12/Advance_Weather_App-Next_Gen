@@ -1,7 +1,9 @@
 import { Droplets } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { WeatherIcon } from "@/components/weather-icon"
+import { useSettings } from "@/hooks/use-settings"
 import { formatHourLabel, getHourlyForecast } from "@/lib/forecast"
+import { formatTemp } from "@/lib/units"
 import type { ForecastData } from "@/lib/weather"
 
 interface HourlyForecastProps {
@@ -11,6 +13,7 @@ interface HourlyForecastProps {
 export function HourlyForecast({ forecast }: HourlyForecastProps) {
   const hourly = getHourlyForecast(forecast, 8)
   const timezone = forecast.city?.timezone ?? 0
+  const { units } = useSettings()
 
   return (
     <Card className="bg-card/90 border-border/50 shadow-sm backdrop-blur-sm">
@@ -28,7 +31,7 @@ export function HourlyForecast({ forecast }: HourlyForecastProps) {
                 {index === 0 ? "Now" : formatHourLabel(hour.dt, timezone)}
               </span>
               <WeatherIcon icon={hour.icon} description={hour.description} className="text-primary h-6 w-6" />
-              <span className="text-foreground text-base font-bold">{hour.temp}°</span>
+              <span className="text-foreground text-base font-bold">{formatTemp(hour.temp, units)}</span>
               <span
                 className={
                   hour.pop > 0

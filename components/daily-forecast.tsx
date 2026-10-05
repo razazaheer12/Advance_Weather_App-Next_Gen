@@ -1,7 +1,9 @@
 import { Droplets } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { WeatherIcon } from "@/components/weather-icon"
+import { useSettings } from "@/hooks/use-settings"
 import { getDailyForecast } from "@/lib/forecast"
+import { formatTemp } from "@/lib/units"
 import type { ForecastData } from "@/lib/weather"
 
 interface DailyForecastProps {
@@ -10,6 +12,7 @@ interface DailyForecastProps {
 
 export function DailyForecast({ forecast }: DailyForecastProps) {
   const days = getDailyForecast(forecast, 5)
+  const { units } = useSettings()
   const weekMin = Math.min(...days.map((day) => day.min))
   const weekMax = Math.max(...days.map((day) => day.max))
   const span = Math.max(weekMax - weekMin, 1)
@@ -38,14 +41,14 @@ export function DailyForecast({ forecast }: DailyForecastProps) {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground w-8 text-right text-sm">{day.min}°</span>
+                  <span className="text-muted-foreground w-9 text-right text-sm">{formatTemp(day.min, units)}</span>
                   <div className="bg-muted relative h-1.5 w-14 overflow-hidden rounded-full md:w-24" aria-hidden="true">
                     <div
                       className="from-primary/60 to-primary absolute inset-y-0 rounded-full bg-gradient-to-r"
                       style={{ left: `${left}%`, width: `${Math.max(width, 8)}%` }}
                     />
                   </div>
-                  <span className="text-foreground w-8 text-sm font-semibold">{day.max}°</span>
+                  <span className="text-foreground w-9 text-sm font-semibold">{formatTemp(day.max, units)}</span>
                 </div>
               </div>
             )

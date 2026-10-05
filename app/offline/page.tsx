@@ -16,7 +16,7 @@ export default function OfflinePage() {
           <div className="bg-muted mx-auto mb-4 w-fit rounded-full p-3">
             <WifiOff className="text-muted-foreground h-8 w-8" />
           </div>
-          <CardTitle className="text-xl">You're Offline</CardTitle>
+          <CardTitle className="text-xl">You&apos;re Offline</CardTitle>
         </CardHeader>
         <CardContent className="text-center space-y-4">
           <p className="text-muted-foreground">

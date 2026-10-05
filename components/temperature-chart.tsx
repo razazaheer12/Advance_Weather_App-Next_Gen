@@ -2,7 +2,9 @@
 
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useSettings } from "@/hooks/use-settings"
 import { formatHourLabel, getHourlyForecast } from "@/lib/forecast"
+import { toTemp } from "@/lib/units"
 import type { ForecastData } from "@/lib/weather"
 
 interface TemperatureChartProps {
@@ -20,9 +22,10 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: { paylo
 
 export function TemperatureChart({ forecast }: TemperatureChartProps) {
   const timezone = forecast.city?.timezone ?? 0
+  const { units } = useSettings()
   const data = getHourlyForecast(forecast, 8).map((hour, index) => ({
     label: index === 0 ? "Now" : formatHourLabel(hour.dt, timezone),
-    temp: hour.temp,
+    temp: Math.round(toTemp(hour.temp, units)),
   }))
 
   return (

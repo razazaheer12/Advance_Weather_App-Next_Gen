@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useRef } from "react"
-import { Loader2, Search, X } from "lucide-react"
+import { Loader2, LocateFixed, Search, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -11,6 +11,7 @@ interface SearchBarProps {
   value: string
   onValueChange: (value: string) => void
   onSubmit: (query: string) => void
+  onLocate?: () => void
   loading?: boolean
   size?: "md" | "lg"
   placeholder?: string
@@ -21,6 +22,7 @@ export function SearchBar({
   value,
   onValueChange,
   onSubmit,
+  onLocate,
   loading = false,
   size = "md",
   placeholder = "Search for a city...",
@@ -58,7 +60,8 @@ export function SearchBar({
         aria-label="Search for a city"
         className={cn(
           "bg-card/80 border-border/50 shadow-sm backdrop-blur-sm transition-all duration-300 focus:shadow-md",
-          isLarge ? "h-14 rounded-xl pl-12 pr-32 text-lg" : "h-11 rounded-xl pl-11 pr-28 text-base",
+          isLarge ? "h-14 rounded-xl pl-12 text-lg" : "h-11 rounded-xl pl-11 text-base",
+          onLocate ? (isLarge ? "pr-44" : "pr-40") : isLarge ? "pr-32" : "pr-28",
         )}
       />
       <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
@@ -75,6 +78,20 @@ export function SearchBar({
             className="text-muted-foreground h-8 w-8 rounded-full"
           >
             <X className="h-4 w-4" />
+          </Button>
+        )}
+        {onLocate && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Use my current location"
+            title="Use my current location"
+            onClick={onLocate}
+            disabled={loading}
+            className="text-muted-foreground h-8 w-8 rounded-full transition-transform active:scale-95"
+          >
+            <LocateFixed className="h-4 w-4" />
           </Button>
         )}
         <Button type="submit" disabled={loading} className={cn("rounded-lg", isLarge ? "h-10 px-6" : "h-8 px-4")}>
