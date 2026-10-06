@@ -6,7 +6,7 @@
 
 Search any city, follow the hour-by-hour story of the day, keep your favorite places one tap away — and keep reading the forecast even when your connection drops.
 
-[![Live Demo](https://img.shields.io/badge/Live_Demo-Vercel-000000?logo=vercel&logoColor=white)](https://advance-weather-app-next-gen.vercel.app/)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Vercel-000000?logo=vercel&logoColor=white)](https://weather-flow-web-app.vercel.app/)
 [![Next.js](https://img.shields.io/badge/Next.js-14.2-000000?logo=next.js&logoColor=white)](https://nextjs.org)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
@@ -14,7 +14,7 @@ Search any city, follow the hour-by-hour story of the day, keep your favorite pl
 [![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white)](https://web.dev/learn/pwa)
 [![Strict Build](https://img.shields.io/badge/build-type--checked%20%2B%20linted-brightgreen)](#-quality-gates)
 
-🔗 **Live demo:** [advance-weather-app-next-gen.vercel.app](https://advance-weather-app-next-gen.vercel.app/) · 📦 **Source:** [github.com/razazaheer12/Advance_Weather_App-Next_Gen](https://github.com/razazaheer12/Advance_Weather_App-Next_Gen)
+🔗 **Live demo:** [weather-flow-web-app.vercel.app/](https://weather-flow-web-app.vercel.app/) · 📦 **Source:** [github.com/razazaheer12/weather-flow-app](https://github.com/razazaheer12/weather-flow-app)
 
 </div>
 
@@ -169,8 +169,8 @@ Cache names are versioned (`weatherflow-v1-*`); activating workers purge older v
 
 ```bash
 # 1. Clone
-git clone https://github.com/razazaheer12/Advance_Weather_App-Next_Gen.git
-cd Advance_Weather_App-Next_Gen
+git clone https://github.com/razazaheer12/weather-flow-app
+cd weather-flow-app
 
 # 2. Install dependencies
 pnpm install
